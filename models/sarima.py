@@ -1,40 +1,49 @@
 import pandas as pd
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 
-def sarima_forecast(df):
-    """
-    Returns the 2018-2019 season with a Seasonal ARIMA forecast:
-    HS_sarima = mean HS of the same (month, day) across all previous years.
-    :param df: df to update
-    :return:
-    """
-    date_col = "Date"
-    hs_col = "HS_after_gapfill"
+def sarima(df, date_col="Date", hs_col="HS_after_gapfill"):
     df = df.copy()
     df[date_col] = pd.to_datetime(df[date_col])
     df = df.set_index(date_col).sort_index()
 
+    df = df[(df.index.month >= 11) | (df.index.month <= 5)]
 
     train = df[df.index < "2018-11-01"]
-    test  = df[(df.index >= "2018-11-01") & (df.index <= "2019-05-31")]
+    test = df[(df.index >= "2018-11-01") & (df.index <= "2019-05-31")]
+
+
     order = (1, 1, 1)
-    seasonal_order = (1, 1, 1, 365)
+    seasonal_order = (1, 1, 1, 212) #THIS IS 212 FOR 1 NOV TO 31 MAY
 
     model = SARIMAX(
         train[hs_col],
         order=order,
         seasonal_order=seasonal_order,
         enforce_stationarity=False,
-        enforce_invertibility=False
+        enforce_invertibility=False,
     )
 
     fitted = model.fit(disp=False)
 
-    # Forecast on the test range
-    preds = fitted.predict(start=test.index[0], end=test.index[-1])
+    # ---- THIS IS THE IMPORTANT PART ----
+    start_idx = len(train)
+    end_idx = len(train) + len(test) - 1
 
-    # Assemble output
+    preds = fitted.predict(start=start_idx, end=end_idx)
+
+    # Align predictions with test dates
+    preds = pd.Series(preds, index=test.index)
+
     out = test.copy()
     out["HS_sarima"] = preds
-
     return out
+
+
+def accuracy(df, col):
+    """
+    Computes the average error of the naive model
+    :param df: pandas df
+    :param col: the column to compute the accuracy
+    :return: (float) mean absolute error between real and expected value
+    """
+    return (df["HS_after_gapfill"] - df[col]).abs().mean()

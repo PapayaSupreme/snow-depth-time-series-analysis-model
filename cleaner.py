@@ -15,7 +15,7 @@ def clean_file(filename: str) -> None:
     df['month'] = df[date_col].dt.month
     df['day'] = df[date_col].dt.day
 
-    mask = ((df["month"] >= 11) | (df["month"] <= 5))
+    mask = ((df["month"] >= 11) | (df["month"] <= 5)) & ~((df["month"] == 2) & (df["day"] == 29))
 
     filtered = df[mask]
     filtered = filtered.drop(columns=["month", "day"])
