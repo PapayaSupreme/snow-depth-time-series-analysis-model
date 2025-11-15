@@ -22,7 +22,7 @@ def clean_file(filename: str) -> None:
 
     filtered.to_csv("./cleaned v2/" + filename, index=False)
 
-def clean_all_v1() -> None:
+def clean_all() -> None:
     """
         Cleans every file present in folder "./cleaned v1/"
         by calling clean_file().
@@ -31,5 +31,3 @@ def clean_all_v1() -> None:
     for file in folder.iterdir():
         if file.is_file():
             clean_file(str(file)[11:])
-
-clean_all_v1()
