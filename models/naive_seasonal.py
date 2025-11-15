@@ -43,10 +43,4 @@ def naive_seasonal(df: pd.DataFrame):
 
     return curr
 
-def naive_accuracy(df_naive):
-    """
-    Computes the average error of the naive model
-    :param df_naive: pandas df containing the naive model column
-    :return: (float) mean absolute error between real and expected value
-    """
-    return (df_naive["HS_after_gapfill"] - df_naive["HS_naive"]).abs().mean()
+()

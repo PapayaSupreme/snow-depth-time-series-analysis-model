@@ -1,8 +1,9 @@
 from pandas import read_csv
 from pathlib import Path
-from models.naive_seasonal import naive_seasonal, naive_accuracy
-from models.sarima import sarima, accuracy
-from cleaner import clean_all
+from models.naive_seasonal import naive_seasonal
+from models.sarima import sarima
+from utils.cleaner import clean_all
+from utils.accuracy import accuracy
 
 def main():
     print("cleaning raw samples, please wait...")
@@ -37,12 +38,12 @@ def main():
         avg_HS_after_gapfill = dfs[k]["HS_after_gapfill"].abs().mean()
 
         df_naive = naive_seasonal(dfs[k])
-        print("Naive method Accuracy for station", k, ": ", naive_accuracy(df_naive),
-              "after normalizing (mae / avg snow depth): ", naive_accuracy(df_naive)
+        print("Naive method Accuracy for station", k, ": ", accuracy(df_naive, "HS_naive"),
+              "after normalizing (mae / avg snow depth): ", accuracy(df_naive, "HS_naive")
               / avg_HS_after_gapfill)
         print()
 
-        df_sarima = sarima(dfs[k])
+        df_sarima = sarima(dfs[k], True)
         print("SARIMA model Accuracy for station", k, ": ", accuracy(df_sarima, "HS_sarima"),
               "after normalizing (mae / avg snow depth): ", accuracy(df_sarima, "HS_sarima")
               / avg_HS_after_gapfill)
