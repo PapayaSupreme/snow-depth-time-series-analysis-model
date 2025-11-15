@@ -1,16 +1,15 @@
 import pandas as pd
 
-def naive_seasonal(
-    df: pd.DataFrame,
-    date_col: str = "Date",
-    hs_col: str = "HS_after_qc",
-    out_col: str = "HS_naive"
-):
+def naive_seasonal(df: pd.DataFrame):
     """
     Returns the 2018-2019 season with a naive forecast:
     HS_naive = mean HS of the same (month, day) across all previous years.
+    :param: df: df to update
+    :return: df with the HS_naive column added
     """
-
+    date_col = "Date"
+    hs_col = "HS_after_gapfill"
+    out_col = "HS_naive"
     df = df.copy()
     df[date_col] = pd.to_datetime(df[date_col])
 
