@@ -38,14 +38,14 @@ def main():
         avg_HS_after_gapfill = dfs[k]["HS_after_gapfill"].abs().mean()
 
         df_naive = naive_seasonal(dfs[k])
-        print("Naive method Accuracy for station", k, ": ", accuracy(df_naive, "HS_naive"),
-              "after normalizing (mae / avg snow depth): ", accuracy(df_naive, "HS_naive")
+        print(k, "- naive Accuracy: ", accuracy(df_naive, "HS_naive"),
+              "- Normalized: ", accuracy(df_naive, "HS_naive")
               / avg_HS_after_gapfill)
         print()
 
-        df_sarima = sarima(dfs[k], True)
-        print("SARIMA model Accuracy for station", k, ": ", accuracy(df_sarima, "HS_sarima"),
-              "after normalizing (mae / avg snow depth): ", accuracy(df_sarima, "HS_sarima")
+        df_sarima = sarima(dfs[k], 1)
+        print(k, "- SARIMA Accuracy: ", accuracy(df_sarima, "HS_sarima"),
+              "- Normalized: ", accuracy(df_sarima, "HS_sarima")
               / avg_HS_after_gapfill)
         print()
 
