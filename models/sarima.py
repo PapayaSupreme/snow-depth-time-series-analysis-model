@@ -1,7 +1,7 @@
 import pandas as pd
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 
-def sarima(df, heaviness):
+def sarima(df, heaviness, simple_diff):
     date_col = "Date"
     hs_col = "HS_after_gapfill"
     out_col = "HS_sarima"
@@ -19,11 +19,14 @@ def sarima(df, heaviness):
     order = (1, 1, 1) #events, treznds, errors
     seasonal_order = (1, 1, 1, 212) #THIS IS 212 FOR 1 NOV TO 31 MAY
     if heaviness == 1:
-        seasonal_order = (1, 1, 1, 30)
+        seasonal_order = (1, 1, 1, 90)
     elif heaviness == 2:
-        seasonal_order = (1, 1, 1, 7)
+        seasonal_order = (1, 1, 1, 30)
     elif heaviness == 3:
+        seasonal_order = (1, 1, 1, 7)
+    elif heaviness == 4:
         seasonal_order = (0, 0, 0, 0)
+
 
     model = SARIMAX(
         train,
@@ -31,6 +34,7 @@ def sarima(df, heaviness):
         seasonal_order=seasonal_order,
         enforce_stationarity=False,
         enforce_invertibility=False,
+        simple_differencing=simple_diff
     )
 
     fitted = model.fit(disp=False)

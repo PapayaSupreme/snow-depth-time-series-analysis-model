@@ -43,7 +43,7 @@ def main():
               / avg_HS_after_gapfill)
         print()
 
-        df_sarima = sarima(dfs[k], 1)
+        df_sarima = sarima(dfs[k], 1, True)
         print(k, "- SARIMA Accuracy: ", accuracy(df_sarima, "HS_sarima"),
               "- Normalized: ", accuracy(df_sarima, "HS_sarima")
               / avg_HS_after_gapfill)
