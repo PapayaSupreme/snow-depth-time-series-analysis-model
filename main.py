@@ -56,8 +56,8 @@ def main():
                     )
 
                     print(f"=== {k} NAIVE SEASONAL Rolling Validation ===")
-                    print(results_111.head())
-                    print("Global MAE:", mae_111)
+                    print(results_111.tail(5))
+                    print("Global MAE:", mae_111, "\n")
 
             case 2:
                 correct = False

@@ -3,22 +3,27 @@ from statsmodels.tsa.statespace.sarimax import SARIMAX
 from utils.accuracy import accuracy, normalization
 
 
-def rolling_seasonal_cv_sarima(
-    df,
-    p, d, q,
-    P, D, Q, s,
-    simple_diff,
-    min_train_seasons=10
-):
+def rolling_seasonal_cv_sarima(df,
+                               p, d, q,
+                               P, D, Q, S,
+                               simple_diff,
+                               min_train_seasons=10):
     """
-    Rolling seasonal cross-validation for SARIMA.
+    Rolling seasonal cross-validation for SARIMA(p, d, q)(P, D, Q, S).
 
-    :param df: pandas DataFrame, has at least 'Date' and 'HS_after_gapfill'
-    :param p,d,q: non-seasonal ARIMA order
-    :param P,D,Q,s: seasonal order (P,D,Q,s)
-    :param min_train_seasons: number of initial seasons used only for training
+    :param df: (pandas dataframe) contains at least "Date" and "HS_after_gapfill
+    :param p: (int) AR iterations
+    :param d: (int) I iterations
+    :param q: (int) MA iterations
+    :param P: (int) AR iterations
+    :param D: (int) I iterations
+    :param Q: (int) MA iterations
+    :param S: (int) seasonal grid size
+    :param simple_diff: (boolean) Use simple differenciating
+    :param min_train_seasons: (int) number of seasons trained without rolling cv
 
-    :return results_df: per-season (normalized) MAE and season_year
+
+    :return results_df: (pandas dataframe) per-season MAE and season_year
     :return global_mae: mean of per-season normalized MAE
     """
     date_col = "Date"
@@ -28,15 +33,12 @@ def rolling_seasonal_cv_sarima(
     df[date_col] = pd.to_datetime(df[date_col])
     df = df.set_index(date_col).sort_index()
 
-    # Regular daily series + fill missing values
     y = df[hs_col].astype(float).asfreq("D").ffill().bfill()
 
-    # Keep only Nov–May (snow season)
     m = y.index.month
     season_mask = (m >= 11) | (m <= 5)
     y = y[season_mask]
 
-    # Compute season_year: Nov–Dec -> year, Jan–May -> year-1
     months = y.index.month
     season_year = pd.Series(y.index.year, index=y.index, name="season_year").astype(int)
     season_year[months <= 5] -= 1
@@ -59,7 +61,7 @@ def rolling_seasonal_cv_sarima(
         if len(y_train) == 0 or len(val_index) == 0:
             continue
 
-        preds = sarima_predict(y_train, val_index, p, d, q, P, D, Q, s, simple_diff)
+        preds = sarima_predict(y_train, val_index, p, d, q, P, D, Q, S, simple_diff)
 
         if preds.isna().all():
             continue
@@ -74,7 +76,7 @@ def rolling_seasonal_cv_sarima(
 
         # Normalized by seasonal mean depth
         season_mean = val_df["HS_after_gapfill"].mean()
-        norm_mae = noemalization(mae, season_mean)
+        norm_mae = normalization(mae, season_mean)
 
         maes.append(norm_mae)
         season_list.append(val_season)
@@ -88,10 +90,21 @@ def rolling_seasonal_cv_sarima(
     return results_df, global_mae
 
 
-def sarima_predict(train_series, val_index, p, d, q, P, D, Q, s, simple_diff):
+def sarima_predict(train_series, val_index, p, d, q, P, D, Q, S, simple_diff):
     """
-    Fit SARIMA on `train_series` and forecast over `val_index`.
-    Returns Series indexed by val_index. NaN series if fit fails.
+    Fit SARIMA(p, d, q)(P, D, Q, S)
+     on `train_series` and forecast over `val_index`.
+
+    :param p: (int) AR iterations
+    :param d: (int) I iterations
+    :param q: (int) MA iterations
+    :param P: (int) AR iterations
+    :param D: (int) I iterations
+    :param Q: (int) MA iterations
+    :param S: (int) seasonal grid size
+    :param simple_diff: (boolean) Use simple differenciating
+
+    :returns: Series of predictions indexed by val_index. Returns NaN series if fit fails.
     """
     try:
         y_train = pd.Series(
@@ -103,7 +116,7 @@ def sarima_predict(train_series, val_index, p, d, q, P, D, Q, s, simple_diff):
         model = SARIMAX(
             y_train,
             order=(p, d, q),
-            seasonal_order=(P, D, Q, s),
+            seasonal_order=(P, D, Q, S),
             enforce_stationarity=False,
             enforce_invertibility=False,
             simple_differencing=simple_diff
