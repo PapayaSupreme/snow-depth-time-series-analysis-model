@@ -9,4 +9,5 @@ def accuracy(df, col):
     return (df["HS_after_gapfill"] - df[col]).abs().mean()
 
 def normalization(mae, season_mean):
+    """pretty straighforward fct is one-liner"""
     return mae / season_mean if season_mean != 0 else float("nan")

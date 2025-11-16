@@ -4,9 +4,8 @@ from pathlib import Path
 from models.naive_seasonal import rolling_naive_seasonal
 from models.sarima import rolling_seasonal_sarima
 from models.arima import rolling_seasonal_arima
+from utils.best_hyperparameters import best_arima_hyperparameters
 from utils.cleaner import clean_all
-from warnings import filterwarnings
-from statsmodels.tools.sm_exceptions import ValueWarning
 from os import makedirs
 
 def main():
@@ -14,7 +13,6 @@ def main():
     clean_all()
     print("Cleaned samples.\n\n")
 
-    filterwarnings("ignore", category=ValueWarning)
     folder = Path("./cleaned v2")
     choices = []
     i = 1
@@ -44,7 +42,8 @@ def main():
         print("1. NAIVE SEASONAL")
         print("2. (AR)(I)(MA)")
         print("3. (AR)(I)(MA) - all hyperparameters")
-        print("4. SARIMA(X)")
+        print("4. (AR)(I)(MA) - choose best hyperparameters")
+        print("5. (S)ARIMA ~X")
         print("0. EXIT")
         choice = -1
         while 0>choice or choice>4 :
@@ -113,6 +112,11 @@ def main():
 
                             print(f"Saved report to {filename}")
             case 4:
+                best_models = best_arima_hyperparameters(filenames)
+
+                for station, info in best_models.items():
+                    print(station, info)
+            case 5:
                 print("NOTE: ARIMA PARAMETERS ARE (p = 1, d = 1, q = 1)")
                 correct = False
                 P, D, Q = 0, 0, 0
