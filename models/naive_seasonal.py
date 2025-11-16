@@ -8,8 +8,8 @@ def rolling_naive_seasonal(df: pd.DataFrame, min_train_seasons: int):
     For each validation season, the forecast for a given (month, day) is the
     mean HS of the same (month, day) across all previous seasons.
 
-    :param df: pandas DataFrame with at least "Date" and "HS_after_gapfill"
-    :param min_train_seasons: number of initial seasons used only for training
+    :param df: (pandas dataframe) contains at least "Date" and "HS_after_gapfill
+    :param min_train_seasons: (int) number of seasons trained without rolling cv
 
     :return results_df: per-season normalized MAE and season_year
     :return global_mae: mean of per-season normalized MAE

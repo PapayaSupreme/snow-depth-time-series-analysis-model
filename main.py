@@ -2,8 +2,8 @@ from pandas import read_csv
 from pathlib import Path
 
 from models.naive_seasonal import rolling_naive_seasonal
-from models.sarima import *
-from models.arima import *
+from models.sarima import rolling_seasonal_sarima
+from models.arima import rolling_seasonal_arima
 from utils.cleaner import clean_all
 
 def main():
@@ -50,14 +50,14 @@ def main():
 
             case 1:
                 for k in dfs:
-                    results_111, mae_111 = rolling_naive_seasonal(
+                    results, mae = rolling_naive_seasonal(
                         dfs[k],
-                        min_train_seasons=30
+                        min_train_seasons=10
                     )
 
                     print(f"=== {k} NAIVE SEASONAL Rolling Validation ===")
-                    print(results_111.tail(5))
-                    print("Global MAE:", mae_111, "\n")
+                    print(results.tail(5))
+                    print("Global MAE:", mae, "\n")
 
             case 2:
                 correct = False
@@ -71,20 +71,31 @@ def main():
                     print("1. YES")
                     correct = int(input()) == 1
                 for k in dfs:
-                    results_111, mae_111 = rolling_seasonal_cv_arima(
+                    results, mae = rolling_seasonal_arima(
                         dfs[k],
                         p, d, q,
-                        min_train_seasons=30
+                        min_train_seasons=10
                     )
 
                     print(f"=== {k} ARIMA({p}, {d}, {q}) Rolling Validation ===")
-                    print(results_111.head())
-                    print("Global MAE:", mae_111)
+                    print(results.tail(5))
+                    print("Global MAE:", mae, "\n")
             case 3:
-                heaviness = -1
+                print("NOTE: ARIMA PARAMETERS ARE (p = 1, d = 1, q = 1)")
+                correct = False
+                P, D, Q = 0, 0, 0
+                while not correct:
+                    P = int(input("Choose Q (AR) parameter"))
+                    D = int(input("Choose D (I) parameter"))
+                    Q = int(input("Choose Q (MA) parameter"))
+                    print(f"Chose {P} {D} {Q} as parameter, correct ?")
+                    print("0. NO")
+                    print("1. YES")
+                    correct = int(input()) == 1
+                S = -1
                 print("Choose seasonal heaviness of grid: ")
-                while 0 > heaviness or heaviness > 212:
-                    heaviness = int(input())
+                while 0 > S or S > 212:
+                    S = int(input())
                 simple_diff = -1
                 print("Simplified Differentials ?: ")
                 print("0. NO")
@@ -92,17 +103,17 @@ def main():
                 while simple_diff != 0 and simple_diff != 1:
                     simple_diff = int(input())
                 for k in dfs:
-                    results_111, mae_111 = rolling_seasonal_cv_sarima(
+                    results, mae = rolling_seasonal_sarima(
                         dfs[k],
                         1, 1, 1,
-                        1, 0, 1, heaviness,
+                        P, D, Q, S,
                         simple_diff,
-                        min_train_seasons=30
+                        min_train_seasons=10
                     )
 
-                    print(f"=== {k} SARIMA(1, 1, 1)(1, 0, 1, {heaviness}) Rolling Validation ===")
-                    print(results_111)
-                    print("Global MAE:", mae_111)
+                    print(f"=== {k} SARIMA(1, 1, 1)({P}, {D}, {Q}, {S}) Rolling Validation ===")
+                    print(results.tail(5))
+                    print("Global MAE:", mae, "\n")
 
 
 if __name__ == "__main__":

@@ -3,11 +3,11 @@ from statsmodels.tsa.statespace.sarimax import SARIMAX
 from utils.accuracy import accuracy, normalization
 
 
-def rolling_seasonal_cv_sarima(df,
+def rolling_seasonal_sarima(df,
                                p, d, q,
                                P, D, Q, S,
                                simple_diff,
-                               min_train_seasons=10):
+                               min_train_seasons):
     """
     Rolling seasonal cross-validation for SARIMA(p, d, q)(P, D, Q, S).
 

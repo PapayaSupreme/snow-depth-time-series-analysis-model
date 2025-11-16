@@ -2,13 +2,13 @@ import pandas as pd
 from statsmodels.tsa.arima.model import ARIMA
 from utils.accuracy import accuracy, normalization
 
-def rolling_seasonal_cv_arima(df, p, d, q, min_train_seasons=10):
+def rolling_seasonal_arima(df, p, d, q, min_train_seasons=10):
     """
     Rolling seasonal cross-validation for ARIMA(p,d,q).
 
     :param df: (pandas dataframe) contains at least "Date" and "HS_after_gapfill
     :param p: (int) AR iterations
-    :param d: (int) I iterations
+    :param d: (int) I iteration
     :param q: (int) MA iterations
     :param min_train_seasons: (int) number of seasons trained without rolling cv
 
