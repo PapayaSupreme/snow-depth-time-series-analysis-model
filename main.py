@@ -1,11 +1,10 @@
 from pandas import read_csv
 from pathlib import Path
 
-from models.naive_seasonal import naive_seasonal
-from models.sarima import sarima
+from models.naive_seasonal import rolling_naive_seasonal
+from models.sarima import *
 from models.arima import *
 from utils.cleaner import clean_all
-from utils.accuracy import accuracy
 
 def main():
     print("cleaning raw samples, please wait...")
@@ -51,13 +50,14 @@ def main():
 
             case 1:
                 for k in dfs:
-                    avg_HS_after_gapfill = dfs[k]["HS_after_gapfill"].abs().mean()
+                    results_111, mae_111 = rolling_naive_seasonal(
+                        dfs[k],
+                        min_train_seasons=30
+                    )
 
-                    df_naive = naive_seasonal(dfs[k])
-                    print(k, "- naive Accuracy: ", accuracy(df_naive, "HS_naive"),
-                          "- Normalized: ", accuracy(df_naive, "HS_naive")
-                          / avg_HS_after_gapfill)
-                    print()
+                    print(f"=== {k} NAIVE SEASONAL Rolling Validation ===")
+                    print(results_111.head())
+                    print("Global MAE:", mae_111)
 
             case 2:
                 correct = False
@@ -74,7 +74,7 @@ def main():
                     results_111, mae_111 = rolling_seasonal_cv_arima(
                         dfs[k],
                         p, d, q,
-                        min_train_seasons=10  # or 5 if you want earlier validation starts
+                        min_train_seasons=30
                     )
 
                     print(f"=== {k} ARIMA({p}, {d}, {q}) Rolling Validation ===")
@@ -82,13 +82,8 @@ def main():
                     print("Global MAE:", mae_111)
             case 3:
                 heaviness = -1
-                print("Choose heaviness of grid: ")
-                print("0. 212")
-                print("1. 90")
-                print("2. 30")
-                print("3. 7")
-                print("4. NO GRID")
-                while 0 > heaviness or heaviness > 4:
+                print("Choose seasonal heaviness of grid: ")
+                while 0 > heaviness or heaviness > 212:
                     heaviness = int(input())
                 simple_diff = -1
                 print("Simplified Differentials ?: ")
@@ -97,12 +92,17 @@ def main():
                 while simple_diff != 0 and simple_diff != 1:
                     simple_diff = int(input())
                 for k in dfs:
-                    avg_HS_after_gapfill = dfs[k]["HS_after_gapfill"].abs().mean()
-                    df_sarima = sarima(dfs[k], heaviness, simple_diff == 1)
-                    print(k, "- SARIMA Accuracy: ", accuracy(df_sarima, "HS_sarima"),
-                          "- Normalized: ", accuracy(df_sarima, "HS_sarima")
-                          / avg_HS_after_gapfill)
-                    print()
+                    results_111, mae_111 = rolling_seasonal_cv_sarima(
+                        dfs[k],
+                        1, 1, 1,
+                        1, 0, 1, heaviness,
+                        simple_diff,
+                        min_train_seasons=30
+                    )
+
+                    print(f"=== {k} SARIMA(1, 1, 1)(1, 0, 1, {heaviness}) Rolling Validation ===")
+                    print(results_111)
+                    print("Global MAE:", mae_111)
 
 
 if __name__ == "__main__":

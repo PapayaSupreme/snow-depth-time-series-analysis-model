@@ -1,44 +1,75 @@
 import pandas as pd
+from utils.accuracy import accuracy, normalization
 
-def naive_seasonal(df: pd.DataFrame):
+
+def rolling_naive_seasonal(df: pd.DataFrame, min_train_seasons: int):
     """
-    Returns the 2018-2019 season with a naive forecast:
-    HS_naive = mean HS of the same (month, day) across all previous years.
-    :param: df: df to update
-    :return: df with the HS_naive column added
+    Rolling seasonal cross-validation for a naive seasonal baseline.
+    For each validation season, the forecast for a given (month, day) is the
+    mean HS of the same (month, day) across all previous seasons.
+
+    :param df: pandas DataFrame with at least "Date" and "HS_after_gapfill"
+    :param min_train_seasons: number of initial seasons used only for training
+
+    :return results_df: per-season normalized MAE and season_year
+    :return global_mae: mean of per-season normalized MAE
     """
     date_col = "Date"
     hs_col = "HS_after_gapfill"
-    out_col = "HS_naive"
+
     df = df.copy()
     df[date_col] = pd.to_datetime(df[date_col])
 
-    df["year"]  = df[date_col].dt.year
+    df["year"] = df[date_col].dt.year
     df["month"] = df[date_col].dt.month
-    df["day"]   = df[date_col].dt.day
+    df["day"] = df[date_col].dt.day
 
-    is_target = (
-        ((df["year"] == 2018) & (df["month"] >= 11)) |
-        ((df["year"] == 2019) & (df["month"] <= 5))
-    )
-    curr = df[is_target].copy()
+    season_mask = (df["month"] >= 11) | (df["month"] <= 5)
+    df = df[season_mask]
 
-    prev = df[df["year"] < 2018].copy()
+    df["season_year"] = df["year"].astype(int)
+    df.loc[df["month"] <= 5, "season_year"] -= 1
 
-    curr = curr.sort_values(date_col).reset_index(drop=True)
-    prev = prev.sort_values(date_col).reset_index(drop=True)
+    seasons = sorted(df["season_year"].unique())
 
-    curr[out_col] = float("nan")
+    maes = []
+    season_list = []
 
-    for i in range(len(curr)):
-        m = curr.loc[i, "month"]
-        d = curr.loc[i, "day"]
+    for i in range(min_train_seasons, len(seasons)):
+        val_season = seasons[i]
+        train_seasons = seasons[:i]
 
-        same_day_prev = prev[(prev["month"] == m) & (prev["day"] == d)]
+        prev = df[df["season_year"].isin(train_seasons)]
+        curr = df[df["season_year"] == val_season].copy()
 
-        if not same_day_prev.empty:
-            curr.loc[i, out_col] = same_day_prev[hs_col].mean()
-        else:
-            curr.loc[i, out_col] = float("nan")
+        if prev.empty or curr.empty:
+            continue
 
-    return curr
+        day_means = (
+            prev.groupby(["month", "day"])[hs_col]
+            .mean()
+            .rename("HS_naive")
+        )
+
+        curr = curr.merge(day_means, on=["month", "day"], how="left")
+
+        if curr["HS_naive"].isna().all():
+            continue
+
+        val_df = curr[[hs_col, "HS_naive"]]
+
+        mae = accuracy(val_df, "HS_naive")
+
+        mean_depth = curr[hs_col].mean()
+        norm_mae = normalization(mae, mean_depth)
+
+        maes.append(norm_mae)
+        season_list.append(val_season)
+
+    results_df = pd.DataFrame({
+        "season_year": season_list,
+        "normalized_mae": maes,
+    })
+
+    global_mae = results_df["normalized_mae"].mean() if not results_df.empty else float("nan")
+    return results_df, global_mae

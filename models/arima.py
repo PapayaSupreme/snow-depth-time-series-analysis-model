@@ -91,7 +91,11 @@ def rolling_seasonal_cv_arima(df, p, d, q, min_train_seasons=10):
 def arima_predict(train_series, val_index, p, d, q):
     """
     Fit ARIMA(p,d,q) on `train_series` and forecast over `val_index` (DatetimeIndex).
-    Returns a Series of predictions indexed by val_index. Returns NaN series if fit fails.
+    :param p: (int) AR iterations
+    :param d: (int) I iterations
+    :param q: (int) MA iterations
+
+    :returns: Series of predictions indexed by val_index. Returns NaN series if fit fails.
     """
     try:
         y_train = pd.Series(
