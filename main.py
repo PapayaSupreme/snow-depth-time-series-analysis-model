@@ -3,7 +3,7 @@ from pathlib import Path
 
 from models.naive_seasonal import naive_seasonal
 from models.sarima import sarima
-from models.arima import arima
+from models.arima import *
 from utils.cleaner import clean_all
 from utils.accuracy import accuracy
 
@@ -37,7 +37,6 @@ def main():
         dfs[filename] = read_csv("./cleaned v2/" + filename)
     exit = False
     while not exit:
-        print("NOTE: VALIDATION SAMPLE IS SEASON 2018-19")
         print("Choose a model to train")
         print("1. NAIVE SEASONAL")
         print("2. (AR)(I)(MA)")
@@ -72,13 +71,15 @@ def main():
                     print("1. YES")
                     correct = int(input()) == 1
                 for k in dfs:
-                    avg_HS_after_gapfill = dfs[k]["HS_after_gapfill"].abs().mean()
+                    results_111, mae_111 = rolling_seasonal_cv_arima(
+                        dfs[k],
+                        p, d, q,
+                        min_train_seasons=10  # or 5 if you want earlier validation starts
+                    )
 
-                    df_arima = arima(dfs[k], p, d, q)
-                    print(k, "- ARIMA Accuracy: ", accuracy(df_arima, "HS_arima"),
-                          "- Normalized: ", accuracy(df_arima, "HS_arima")
-                          / avg_HS_after_gapfill)
-                    print()
+                    print(f"=== {k} ARIMA({p}, {d}, {q}) Rolling Validation ===")
+                    print(results_111.head())
+                    print("Global MAE:", mae_111)
             case 3:
                 heaviness = -1
                 print("Choose heaviness of grid: ")
