@@ -42,5 +42,3 @@ def naive_seasonal(df: pd.DataFrame):
             curr.loc[i, out_col] = float("nan")
 
     return curr
-
-()
