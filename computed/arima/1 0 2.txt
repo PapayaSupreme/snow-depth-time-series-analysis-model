@@ -1,0 +1,36 @@
+=== col_de_porte_daily.txt ARIMA(1, 0, 2) Rolling Validation ===
+    season_year       mae
+45         2015  0.863061
+46         2016  1.343790
+47         2017  0.776947
+48         2018  0.744726
+49         2019  0.717859
+Global MAE: 0.975138450750176
+
+=== les2alpes_daily.txt ARIMA(1, 0, 2) Rolling Validation ===
+    season_year       mae
+34         2014  0.442753
+35         2015  0.306798
+36         2016  1.092857
+37         2017  0.332165
+38         2018  0.241639
+Global MAE: 0.5212057868102079
+
+=== serre_chevalier_daily.txt ARIMA(1, 0, 2) Rolling Validation ===
+    season_year       mae
+30         2015  0.794029
+31         2016  0.935050
+32         2017  0.792114
+33         2018  0.605939
+34         2019  0.737248
+Global MAE: 0.9095728757644405
+
+=== tignes_daily.txt ARIMA(1, 0, 2) Rolling Validation ===
+    season_year       mae
+36         2015  0.512669
+37         2016  0.444347
+38         2017  0.720554
+39         2018  0.542604
+40         2019  0.640721
+Global MAE: 0.5225824852150649
+

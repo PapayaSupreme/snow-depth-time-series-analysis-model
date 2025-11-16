@@ -27,7 +27,7 @@ def main():
     choice = int(input())
     while 0 > choice or choice >= len(choices)+1:
         print("out of bounds. try again pls")
-        choice = int(input("Enter data source to use model on: "))
+        choice = int(input())
     if choice == 0:
         filenames = choices
     else:
@@ -46,7 +46,8 @@ def main():
         print("5. (S)ARIMA ~X")
         print("0. EXIT")
         choice = -1
-        while 0>choice or choice>4 :
+        while 0>choice or choice>5 :
+            print("out of bounds. try again pls")
             choice = int(input())
         match choice:
             case 0:
