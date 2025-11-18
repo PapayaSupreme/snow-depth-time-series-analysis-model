@@ -76,7 +76,7 @@ def main():
                     print("1. YES")
                     correct = int(input()) == 1
                 for k in dfs:
-                    results, mae = rolling_seasonal_arima(
+                    results, mae, season, predicted, pct_error = rolling_seasonal_arima(
                         dfs[k],
                         p, d, q,
                         min_train_seasons=10
@@ -84,7 +84,8 @@ def main():
 
                     print(f"=== {k} ARIMA({p}, {d}, {q}) Rolling Validation ===")
                     print(results.tail(5))
-                    print("Global MAE:", mae, "\n")
+                    pct_error = ((predicted - season) / season) * 100.0
+                    print("Global: MAE:", mae.round(3), "mean:", season.round(3), "predicted:", predicted.round(3), "%:", pct_error.round(3))
             case 3:
                 makedirs("./computed/arima/", exist_ok=True)
                 p_list = [0, 1, 2, 3]
@@ -114,9 +115,19 @@ def main():
                             print(f"Saved report to {filename}")
             case 4:
                 best_models = best_arima_hyperparameters(filenames)
+                """averages = {}
+                for filename in filenames:
+                    averages[filename] = [float(dfs[filename]["HS_after_gapfill"].mean()),
+                                          float(dfs[filename]["HS_after_gapfill"].mean()
+                                          * best_models[filename]["mae"]),
+                                          float((dfs[filename]["HS_after_gapfill"].mean()
+                                          - dfs[filename]["HS_after_gapfill"].mean()
+                                          * best_models[filename]["mae"]))
+                                          ]"""
 
                 for station, info in best_models.items():
                     print(station, info)
+                    #print(averages[station])
             case 5:
                 print("NOTE: ARIMA PARAMETERS ARE (p = 1, d = 1, q = 1)")
                 correct = False
