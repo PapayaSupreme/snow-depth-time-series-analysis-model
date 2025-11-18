@@ -55,14 +55,16 @@ def main():
 
             case 1:
                 for k in dfs:
-                    results, mae = rolling_naive_seasonal(
+                    results, mae, season, predicted, pct_error = rolling_naive_seasonal(
                         dfs[k],
                         min_train_seasons=10
                     )
 
-                    print(f"=== {k} NAIVE SEASONAL Rolling Validation ===")
+                    print(f"=== {k} NAIVE Rolling Validation ===")
                     print(results.tail(5))
-                    print("Global MAE:", mae, "\n")
+                    pct_error = ((predicted - season) / season) * 100.0
+                    print("Global: MAE:", mae.round(3), "mean:", season.round(3), "predicted:", predicted.round(3),
+                          "%:", pct_error.round(3))
 
             case 2:
                 correct = False
@@ -98,7 +100,7 @@ def main():
                             lines = []
 
                             for k in dfs:
-                                results, mae = rolling_seasonal_arima(
+                                results, mae, season, predicted, pct_error = rolling_seasonal_arima(
                                     dfs[k],
                                     p, d, q,
                                     min_train_seasons=10
@@ -106,7 +108,7 @@ def main():
 
                                 lines.append(f"=== {k} ARIMA({p}, {d}, {q}) Rolling Validation ===\n")
                                 lines.append(results.tail(5).to_string() + "\n")
-                                lines.append(f"Global MAE: {mae}\n\n")
+                                lines.append(f"Global - MAE: {mae.round(3)}  mean: {season.round(3)}  predicted: {predicted.round(3)} %: {pct_error.round(3)}")
 
                             filename = f"./computed/arima/{p} {d} {q}.txt"
                             with open(filename, "w", encoding="utf-8") as f:

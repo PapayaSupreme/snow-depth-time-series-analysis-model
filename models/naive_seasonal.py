@@ -1,5 +1,4 @@
 import pandas as pd
-from utils.accuracy import accuracy, normalization
 
 
 def rolling_naive_seasonal(df: pd.DataFrame, min_train_seasons: int):
@@ -34,6 +33,9 @@ def rolling_naive_seasonal(df: pd.DataFrame, min_train_seasons: int):
 
     maes = []
     season_list = []
+    season_means = []
+    predicted_means = []
+    pct_errors = []
 
     for i in range(min_train_seasons, len(seasons)):
         val_season = seasons[i]
@@ -58,18 +60,29 @@ def rolling_naive_seasonal(df: pd.DataFrame, min_train_seasons: int):
 
         val_df = curr[[hs_col, "HS_naive"]]
 
-        mae = accuracy(val_df, "HS_naive")
+        y_true = pd.to_numeric(val_df["HS_after_gapfill"], errors="coerce")
+        y_pred = pd.to_numeric(val_df["HS_naive"], errors="coerce")
+        mae = (y_true - y_pred).abs().mean()
+        season_mean = val_df["HS_after_gapfill"].mean()
+        predicted_mean = val_df["HS_naive"].mean()
+        pct_error = ((predicted_mean - season_mean) / season_mean) * 100.0
 
-        mean_depth = curr[hs_col].mean()
-        norm_mae = normalization(mae, mean_depth)
-
-        maes.append(norm_mae)
+        maes.append(mae)
         season_list.append(val_season)
+        season_means.append(season_mean)
+        predicted_means.append(predicted_mean)
+        pct_errors.append(pct_error)
 
     results_df = pd.DataFrame({
         "season_year": season_list,
-        "normalized_mae": maes,
+        "mae": maes,
+        "season_mean": season_means,
+        "predicted_mean": predicted_means,
+        "pct_error": pct_errors,
     })
 
-    global_mae = results_df["normalized_mae"].mean() if not results_df.empty else float("nan")
-    return results_df, global_mae
+    global_mae = results_df["mae"].mean() if not results_df.empty else float("nan")
+    global_season_mean = results_df["season_mean"].mean() if not results_df.empty else float("nan")
+    global_predicted_mean = results_df["predicted_mean"].mean() if not results_df.empty else float("nan")
+    global_pct_error = results_df["pct_error"].mean() if not results_df.empty else float("nan")
+    return results_df, global_mae, global_season_mean, global_predicted_mean, global_pct_error
