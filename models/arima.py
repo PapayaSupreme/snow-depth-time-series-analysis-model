@@ -1,6 +1,5 @@
 import pandas as pd
 from statsmodels.tsa.arima.model import ARIMA
-from utils.accuracy import accuracy
 
 def rolling_seasonal_arima(df, p, d, q, min_train_seasons=10):
     """
@@ -39,6 +38,7 @@ def rolling_seasonal_arima(df, p, d, q, min_train_seasons=10):
     seasons = sorted(season_year.unique())
 
     maes = []
+    nmaes = []
     season_list = []
     season_means = []
     predicted_means = []
@@ -73,9 +73,11 @@ def rolling_seasonal_arima(df, p, d, q, min_train_seasons=10):
         season_mean = val_df["HS_after_gapfill"].mean()
         predicted_mean = val_df["HS_arima"].mean()
         pct_error = ((predicted_mean - season_mean) / season_mean) * 100.0
+        nmae = mae / season_mean if season_mean != 0 else float("nan")
 
 
         maes.append(mae)
+        nmaes.append(nmae)
         season_list.append(val_season)
         season_means.append(season_mean)
         predicted_means.append(predicted_mean)
@@ -85,6 +87,7 @@ def rolling_seasonal_arima(df, p, d, q, min_train_seasons=10):
     results_df = pd.DataFrame({
         "season_year": season_list,
         "mae": maes,
+        "nmae": nmaes,
         "season_mean": season_means,
         "predicted_mean": predicted_means,
         "pct_error": pct_errors,
@@ -94,7 +97,10 @@ def rolling_seasonal_arima(df, p, d, q, min_train_seasons=10):
     global_season_mean = results_df["season_mean"].mean() if not results_df.empty else float("nan")
     global_predicted_mean = results_df["predicted_mean"].mean() if not results_df.empty else float("nan")
     global_pct_error = results_df["pct_error"].mean() if not results_df.empty else float("nan")
-    return results_df, global_mae, global_season_mean, global_predicted_mean, global_pct_error
+    global_nmae = results_df["nmae"].mean() if not results_df.empty else float("nan")
+
+    return (results_df, global_mae, global_nmae, global_season_mean,
+            global_predicted_mean, global_pct_error)
 
 def arima_predict(train_series, val_index, p, d, q):
     """

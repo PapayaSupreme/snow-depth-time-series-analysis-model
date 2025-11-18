@@ -15,7 +15,7 @@ def best_arima_hyperparameters(stations):
                                     "p": 2,
                                     "d": 1,
                                     "q": 2,
-                                    "mae": 0.92,
+                                    "pct_error": x%,
                                     "file": "2 1 2.txt"
                                     }
                                 }
@@ -29,7 +29,7 @@ def best_arima_hyperparameters(stations):
         if not filename.endswith(".txt"):
             continue
 
-        # filename is "p d q.txt"
+        # filename is "p d q.txt" or it fails pls
         try:
             p, d, q = map(int, filename[:-4].split())
         except ValueError:
@@ -44,7 +44,17 @@ def best_arima_hyperparameters(stations):
                 continue
 
             match = re.search(
-                rf"=== {re.escape(station)}.*?Global MAE:\s*([0-9.]+)",
+                rf"=== {re.escape(station)}.*?NMAE:\s*([-0-9.]+)",
+                content,
+                flags=re.DOTALL
+            )
+            if not match:
+                continue
+
+            nmae = float(match.group(1))
+
+            match = re.search(
+                rf"=== {re.escape(station)}.*?- MAE:\s*([-0-9.]+)",
                 content,
                 flags=re.DOTALL
             )
@@ -53,12 +63,13 @@ def best_arima_hyperparameters(stations):
 
             mae = float(match.group(1))
 
-            if station not in best or mae < best[station]["mae"]:
+            if station not in best or nmae < best[station]["nmae"]:
                 best[station] = {
                     "p": p,
                     "d": d,
                     "q": q,
                     "mae": mae,
+                    "nmae": nmae,
                     "file": filename,
                 }
 

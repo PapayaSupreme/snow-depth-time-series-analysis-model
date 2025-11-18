@@ -35,6 +35,7 @@ def rolling_naive_seasonal(df: pd.DataFrame, min_train_seasons: int):
     seasons = sorted(df["season_year"].unique())
 
     maes = []
+    nmaes = []
     season_list = []
     season_means = []
     predicted_means = []
@@ -63,14 +64,17 @@ def rolling_naive_seasonal(df: pd.DataFrame, min_train_seasons: int):
 
         val_df = curr[[hs_col, "HS_naive"]]
 
+
         y_true = pd.to_numeric(val_df["HS_after_gapfill"], errors="coerce")
         y_pred = pd.to_numeric(val_df["HS_naive"], errors="coerce")
         mae = (y_true - y_pred).abs().mean()
         season_mean = val_df["HS_after_gapfill"].mean()
         predicted_mean = val_df["HS_naive"].mean()
         pct_error = ((predicted_mean - season_mean) / season_mean) * 100.0
+        nmae = mae / season_mean if season_mean != 0 else float("nan")
 
         maes.append(mae)
+        nmaes.append(nmae)
         season_list.append(val_season)
         season_means.append(season_mean)
         predicted_means.append(predicted_mean)
@@ -79,6 +83,7 @@ def rolling_naive_seasonal(df: pd.DataFrame, min_train_seasons: int):
     results_df = pd.DataFrame({
         "season_year": season_list,
         "mae": maes,
+        "nmae": nmaes,
         "season_mean": season_means,
         "predicted_mean": predicted_means,
         "pct_error": pct_errors,
@@ -88,4 +93,7 @@ def rolling_naive_seasonal(df: pd.DataFrame, min_train_seasons: int):
     global_season_mean = results_df["season_mean"].mean() if not results_df.empty else float("nan")
     global_predicted_mean = results_df["predicted_mean"].mean() if not results_df.empty else float("nan")
     global_pct_error = results_df["pct_error"].mean() if not results_df.empty else float("nan")
-    return results_df, global_mae, global_season_mean, global_predicted_mean, global_pct_error
+    global_nmae = results_df["nmae"].mean() if not results_df.empty else float("nan")
+
+    return (results_df, global_mae, global_nmae, global_season_mean,
+            global_predicted_mean, global_pct_error)
