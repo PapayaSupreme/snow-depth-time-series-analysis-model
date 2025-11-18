@@ -106,6 +106,8 @@ def arima_predict(train_series, val_index, p, d, q):
     """
     Fit ARIMA(p,d,q)
      on `train_series` and forecast over `val_index`.
+    :param train_series: (Series) training series
+    :param val_index: (Index) index for predictions
     :param p: (int) AR iterations
     :param d: (int) I iterations
     :param q: (int) MA iterations
