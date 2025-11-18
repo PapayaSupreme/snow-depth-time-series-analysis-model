@@ -65,6 +65,7 @@ def main():
                     pct_error = ((predicted - season) / season) * 100.0
                     print("Global: MAE:", mae.round(3), "mean:", season.round(3), "predicted:", predicted.round(3),
                           "%:", pct_error.round(3))
+                    print()
 
             case 2:
                 correct = False
@@ -88,6 +89,7 @@ def main():
                     print(results.tail(5))
                     pct_error = ((predicted - season) / season) * 100.0
                     print("Global: MAE:", mae.round(3), "mean:", season.round(3), "predicted:", predicted.round(3), "%:", pct_error.round(3))
+                    print()
             case 3:
                 makedirs("./computed/arima/", exist_ok=True)
                 p_list = [0, 1, 2, 3]

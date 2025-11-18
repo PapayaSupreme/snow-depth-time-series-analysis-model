@@ -14,6 +14,9 @@ def rolling_seasonal_arima(df, p, d, q, min_train_seasons=10):
 
     :return results_df: (pandas dataframe) per-season MAE and season_year
     :return global_mae: mean of per-season normalized MAE
+    :return global_season_mean: mean of season depth
+    :return global_predicted_mean: mean of predicted depth
+    :return global_pct_error: pct error regarding global vals
     """
     date_col = "Date"
     hs_col = "HS_after_gapfill"
