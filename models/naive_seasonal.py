@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-def rolling_naive_seasonal(df: pd.DataFrame, min_train_seasons: int):
+def rolling_naive_seasonal(df: pd.DataFrame, is_whole, min_train_seasons = 10):
     """
     Rolling seasonal cross-validation for a naive seasonal baseline.
     For each validation season, the forecast for a given (month, day) is the
@@ -26,11 +26,14 @@ def rolling_naive_seasonal(df: pd.DataFrame, min_train_seasons: int):
     df["month"] = df[date_col].dt.month
     df["day"] = df[date_col].dt.day
 
-    season_mask = (df["month"] >= 11) | (df["month"] <= 5)
-    df = df[season_mask]
+    if is_whole:
+        season_mask = (df["month"] >= 11) | (df["month"] <= 5)
+        df = df[season_mask]
 
-    df["season_year"] = df["year"].astype(int)
-    df.loc[df["month"] <= 5, "season_year"] -= 1
+        df["season_year"] = df["year"].astype(int)
+        df.loc[df["month"] <= 5, "season_year"] -= 1
+    else:
+        df["season_year"] = df["year"].astype(int)
 
     seasons = sorted(df["season_year"].unique())
 

@@ -1,7 +1,7 @@
 import pandas as pd
 from statsmodels.tsa.arima.model import ARIMA
 
-def rolling_seasonal_arima(df, p, d, q, min_train_seasons=10):
+def rolling_seasonal_arima(df, p, d, q, is_whole, min_train_seasons=10):
     """
     Rolling seasonal cross-validation for ARIMA(p,d,q).
 
@@ -24,16 +24,19 @@ def rolling_seasonal_arima(df, p, d, q, min_train_seasons=10):
     df[date_col] = pd.to_datetime(df[date_col])
     df = df.set_index(date_col).sort_index()
 
-    y = df[hs_col].astype(float).asfreq("D").ffill().bfill()
+    y = df[hs_col].astype(float).asfreq("D").ffill()
 
-    m = y.index.month
-    season_mask = (m >= 11) | (m <= 5)
-    y = y[season_mask]
+    if not is_whole:
+        m = y.index.month
+        season_mask = (m >= 11) | (m <= 5)
+        y = y[season_mask]
 
     months = y.index.month
 
     season_year = pd.Series(y.index.year, index=y.index, name="season_year").astype(int)
-    season_year[months <= 5] -= 1
+
+    if not is_whole:
+        season_year[months <= 5] -= 1
 
     seasons = sorted(season_year.unique())
 
@@ -106,6 +109,7 @@ def arima_predict(train_series, val_index, p, d, q):
     """
     Fit ARIMA(p,d,q)
      on `train_series` and forecast over `val_index`.
+
     :param train_series: (Series) training series
     :param val_index: (Index) index for predictions
     :param p: (int) AR iterations

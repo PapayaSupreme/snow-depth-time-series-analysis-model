@@ -4,9 +4,15 @@ from pathlib import Path
 from models.naive_seasonal import rolling_naive_seasonal
 from models.sarima import rolling_seasonal_sarima
 from models.arima import rolling_seasonal_arima
+from models.prophet_model import rolling_seasonal_prophet
 from utils.best_hyperparameters import best_arima_hyperparameters
 from utils.cleaner import clean_all
 from os import makedirs
+import matplotlib.pyplot as plt
+from statsmodels.graphics.tsaplots import plot_pacf, plot_acf
+from statsmodels.tsa.stattools import adfuller
+import pandas as pd
+
 
 def main():
     print("cleaning raw samples, please wait...")
@@ -41,12 +47,16 @@ def main():
         print("Choose a model to train")
         print("1. NAIVE SEASONAL")
         print("2. (AR)(I)(MA)")
-        print("3. (AR)(I)(MA) - all hyperparameters")
-        print("4. (AR)(I)(MA) - choose best hyperparameters")
-        print("5. (S)ARIMA ~X")
+        print("3. (AR)(I)(MA) - try all hyperparameters combination")
+        print("4. (AR)(I)(MA) - find best hyperparameters (from files)")
+        print("5. (AR)(I)(MA) - find best hyperparameters (from acf / pacf)")
+        print("6. (S)ARIMA ~X")
+        print("7. PROPHET")
+        print("8. display data per year")
+        print("9. display data per day")
         print("0. EXIT")
         choice = -1
-        while 0>choice or choice>5 :
+        while 0>choice or choice>9 :
             choice = int(input())
         match choice:
             case 0:
@@ -54,10 +64,11 @@ def main():
 
             case 1:
                 for k in dfs:
+                    is_whole = "whole" in k
                     results, mae, nmae, season, predicted, pct_error = rolling_naive_seasonal(
                         dfs[k],
-                        min_train_seasons=10
-                    )
+                        is_whole,
+                    )#TODO: bigru lstm rnns
 
                     print(f"=== {k} NAIVE Rolling Validation ===")
                     print(results.tail(5))
@@ -78,16 +89,29 @@ def main():
                     print("1. YES")
                     correct = int(input()) == 1
                 for k in dfs:
+                    """results, mae, nmae, season, predicted, pct_error = arima_train_test_split(
+                        dfs[k],
+                        p, d, q,
+                    )
+
+                    print(f"=== {k} ARIMA({p}, {d}, {q}) train test split Validation ===")
+                    print(results.tail(5))
+                    pct_error = ((predicted - season) / season) * 100.0
+                    print("Global: MAE:", mae.round(3), "NMAE:", nmae.round(3), "mean:", season.round(3), "predicted:", predicted.round(3), "%:", pct_error.round(3))
+                    print()"""
+                    is_whole =  "whole" in k
+
                     results, mae, nmae, season, predicted, pct_error = rolling_seasonal_arima(
                         dfs[k],
                         p, d, q,
-                        min_train_seasons=10
+                        is_whole,
                     )
 
                     print(f"=== {k} ARIMA({p}, {d}, {q}) Rolling Validation ===")
                     print(results.tail(5))
                     pct_error = ((predicted - season) / season) * 100.0
-                    print("Global: MAE:", mae.round(3), "NMAE:", nmae.round(3), "mean:", season.round(3), "predicted:", predicted.round(3), "%:", pct_error.round(3))
+                    print("Global: MAE:", mae.round(3), "NMAE:", nmae.round(3), "mean:", season.round(3), "predicted:",
+                          predicted.round(3), "%:", pct_error.round(3))
                     print()
             case 3:
                 makedirs("./computed/arima/", exist_ok=True)
@@ -122,7 +146,32 @@ def main():
                 for station, info in best_models.items():
                     print(station, info)
             case 5:
-                print("NOTE: ARIMA PARAMETERS ARE (p = 1, d = 1, q = 1)")
+                for k in dfs:
+                    series = dfs[k]["HS_after_gapfill"].dropna()
+
+                    fig, ax = plt.subplots(2, 1, figsize=(10, 8))
+
+                    plot_acf(series, ax=ax[0], lags=50)
+                    plot_pacf(series, ax=ax[1], lags=50)
+
+                    ax[0].set_title("ACF - HS_after_gapfill")
+                    ax[1].set_title("PACF - HS_after_gapfill")
+
+                    plt.tight_layout()
+                    plt.title(k)
+                    plt.show()
+                    result = adfuller(series)
+
+                    print("ADF Statistic of", k,":", result[0])
+                    print("p-value:", result[1])
+                    print("Lags used:", result[2])
+                    print("Number of observations:", result[3])
+
+                    for key, value in result[4].items():
+                        print("Critical Value (%s): %.3f" % (key, value))
+
+            case 6:
+                print("NOTE: ARIMA PARAMETERS ARE (p = 1, d = 0, q = 1)")
                 correct = False
                 P, D, Q = 0, 0, 0
                 while not correct:
@@ -144,7 +193,7 @@ def main():
                 while simple_diff != 0 and simple_diff != 1:
                     simple_diff = int(input())
                 for k in dfs:
-                    results, mae = rolling_seasonal_sarima(
+                    results, mae, nmae, season, predicted, pct_error = rolling_seasonal_sarima(
                         dfs[k],
                         1, 1, 1,
                         P, D, Q, S,
@@ -152,9 +201,64 @@ def main():
                         min_train_seasons=10
                     )
 
-                    print(f"=== {k} SARIMA(1, 1, 1)({P}, {D}, {Q}, {S}) Rolling Validation ===")
+                    print(f"=== {k} SARIMA(1, 0, 1)({P}, {D}, {Q}, {S}) Rolling Validation ===")
                     print(results.tail(5))
-                    print("Global MAE:", mae, "\n")
+                    pct_error = ((predicted - season) / season) * 100.0
+                    print("Global: MAE:", mae.round(3), "NMAE:", nmae.round(3), "mean:", season.round(3), "predicted:",
+                          predicted.round(3), "%:", pct_error.round(3))
+                    print()
+            case 7:
+                for k in dfs:
+                    results, mae, nmae, season, predicted, pct_error = rolling_seasonal_prophet(
+                        dfs[k],
+                        min_train_seasons=10,
+                    )
+
+                    print(f"=== {k} PROPHET Rolling Validation ===")
+                    print(results.tail(5))
+                    pct_error = ((predicted - season) / season) * 100.0
+                    print("Global: MAE:", mae.round(3), "NMAE:", nmae.round(3), "mean:", season.round(3), "predicted:",
+                          predicted.round(3), "%:", pct_error.round(3))
+                    print()
+            case 8:
+                for k in dfs:
+                    df_copy = dfs[k].copy()
+                    df_copy['Date'] = pd.to_datetime(df_copy['Date'])
+                    df_copy = df_copy.set_index('Date').sort_index()
+
+                    m = df_copy.index.month
+                    season_mask = (m >= 11) | (m <= 5)
+                    df_winter = df_copy[season_mask]
+
+                    months = df_winter.index.month
+                    season_year = pd.Series(df_winter.index.year, index=df_winter.index)
+                    season_year[months <= 5] -= 1
+
+                    seasonal_means = df_winter.groupby(season_year)['HS_after_gapfill'].mean()
+
+                    plt.figure(figsize=(12, 6))
+                    plt.plot(seasonal_means.index, seasonal_means.values, marker='o', linestyle='-', linewidth=2, markersize=8)
+                    plt.xlabel('Season Year')
+                    plt.ylabel('Mean Snow Depth (cm)')
+                    plt.title(f'HS per season of {k}')
+                    plt.grid(True, alpha=0.3)
+                    plt.tight_layout()
+                    plt.show()
+            case 9:
+                for k in dfs:
+                    df_copy = dfs[k].copy()
+                    df_copy['Date'] = pd.to_datetime(df_copy['Date'])
+                    df_copy = df_copy.set_index('Date').sort_index()
+
+                    plt.figure(figsize=(14, 6))
+                    plt.plot(df_copy.index, df_copy['HS_after_gapfill'], linewidth=1, alpha=0.8)
+                    plt.xlabel('Date')
+                    plt.ylabel('Snow Depth (cm)')
+                    plt.title(f'HS per day of {k}')
+                    plt.grid(True, alpha=0.3)
+                    plt.tight_layout()
+                    plt.show()
+
 
 
 if __name__ == "__main__":
