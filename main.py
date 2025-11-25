@@ -1,6 +1,7 @@
 from pandas import read_csv
 from pathlib import Path
 
+from models.gru import rolling_seasonal_gru
 from models.naive_seasonal import rolling_naive_seasonal
 from models.sarima import rolling_seasonal_sarima
 from models.arima import rolling_seasonal_arima
@@ -54,9 +55,10 @@ def main():
         print("7. PROPHET")
         print("8. display data per year")
         print("9. display data per day")
+        print("10. GRU")
         print("0. EXIT")
         choice = -1
-        while 0>choice or choice>9 :
+        while 0>choice or choice>10 :
             choice = int(input())
         match choice:
             case 0:
@@ -258,7 +260,31 @@ def main():
                     plt.grid(True, alpha=0.3)
                     plt.tight_layout()
                     plt.show()
-
+            case 10:
+                print("1. PROD")
+                print("0. TEST")
+                choice = int(input("test or prod"))
+                if choice == 0:
+                    for k in dfs:
+                        results = rolling_seasonal_gru(
+                            dfs[k], is_whole=False,
+                            seq_len=60,
+                            hidden_dim=32,
+                            epochs=50,
+                            patience=5,
+                            min_train_seasons=10)
+                        print(k)
+                        print(results)
+                else:
+                    for k in dfs:
+                        results = rolling_seasonal_gru(
+                            dfs[k], is_whole=False,
+                            seq_len=120,
+                            hidden_dim=128,
+                            epochs=200,
+                            patience=15,
+                            min_train_seasons=10)
+                        print(results)
 
 
 if __name__ == "__main__":

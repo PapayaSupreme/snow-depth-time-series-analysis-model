@@ -1,0 +1,17 @@
+is_whole: bool,
+        seq_len: int = 90,
+        hidden_dim: int = 64,
+        num_layers: int = 2,
+        epochs: int = 100,
+        lr: float = 1e-3,
+        batch_size: int = 16,
+        patience: int = 10,
+        min_train_seasons: int = 10,
+
+Final Results for col_de_porte_daily.txt: MAE: 53.76 cm | Weighted NMAE: 100.5%
+
+Final Results for les2alpes_daily.txt: MAE: 78.57 cm | Weighted NMAE: 57.7%
+
+Final Results for serre_chevalier_daily.txt: MAE: 35.40 cm | Weighted NMAE: 87.5%
+
+Final Results for tignes_daily.txt: MAE: 56.80 cm | Weighted NMAE: 66.8%

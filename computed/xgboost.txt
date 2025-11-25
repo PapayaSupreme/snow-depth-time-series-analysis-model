@@ -1,0 +1,3 @@
+col_de_porte_daily.txt Final MAE: 38.41 cm
+
+tignes_daily.txt Final MAE: 91.51 cm
