@@ -3,7 +3,7 @@ from pathlib import Path
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton,
     QMessageBox, QVBoxLayout, QHBoxLayout, QComboBox,
-    QProgressBar, QTextEdit, QScrollArea
+    QProgressBar, QTextEdit, QScrollArea, QListWidget
 )
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
@@ -16,7 +16,15 @@ from models.prophet_model import rolling_seasonal_prophet
 
 
 class ModelRunner(QThread):
-    """Background thread to run models without freezing GUI"""
+    """
+    Background thread to run models without freezing GUI
+
+    :param df: (pandas dataframe) dataset for the station
+    :param model_type: (str) type of model to run
+    :param params: (dict) model parameters
+
+    :return: emits 'finished' signal with results dict
+    """
     finished = pyqtSignal(dict)
     progress = pyqtSignal(str)
 
@@ -87,7 +95,16 @@ class ModelRunner(QThread):
 
 
 class ResultsWindow(QWidget):
-    """Window to display forecast results"""
+    """
+    Window to display model results
+    1. For standard models, shows MAE, NMAE, season mean, predicted mean, pct error, and last 10 rows of results.
+    2. For GRU, shows the full results dataframe.
+
+    :param station_name: (str) name of the station
+    :param results: (dict) results from the model
+
+    :return: None
+    """
 
     def __init__(self, station_name, results):
         super().__init__()
@@ -107,6 +124,9 @@ class ResultsWindow(QWidget):
             text.append(f"Predicted: {results['predicted']:.3f} cm")
             text.append(f"Error: {results['pct_error']:.3f}%")
             text.append(f"\n{results['results'].tail(10).to_string()}")
+        elif results['type'] == 'computed':
+            text.append(f"=== Computed Forecast: {station_name} ===\n")
+            text.append(results['data'].to_string())
         else:
             text.append(f"=== {station_name} GRU Results ===\n")
             text.append(str(results['results']))
@@ -116,7 +136,14 @@ class ResultsWindow(QWidget):
 
 
 class DraggableScrollArea(QScrollArea):
-    """Scroll area with click-and-drag panning"""
+    """
+    Scroll area that supports click-and-drag panning
+    and shows mouse coordinates relative to the contained widget.
+
+    :param coord_label: QLabel to update with coordinates
+
+    :return: None
+    """
 
     def __init__(self, coord_label):
         super().__init__()
@@ -127,6 +154,13 @@ class DraggableScrollArea(QScrollArea):
         self.setMouseTracking(True)
 
     def mousePressEvent(self, event):
+        """
+        Handle mouse press for dragging.
+
+        :param event: QMouseEvent
+
+        :return: None
+        """
         if event.button() == Qt.MouseButton.LeftButton:
             self._dragging = True
             self._drag_start = event.position().toPoint()
@@ -134,7 +168,13 @@ class DraggableScrollArea(QScrollArea):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
-        # Update coordinates
+        """
+        Handle mouse move for dragging and coordinate display.
+
+        :param event: QMouseEvent
+
+        :return: None
+        """
         if self.widget():
             widget_pos = self.widget().mapFromParent(event.position().toPoint())
             self.coord_label.setText(f"X: {widget_pos.x()}, Y: {widget_pos.y()}")
@@ -151,6 +191,13 @@ class DraggableScrollArea(QScrollArea):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
+        """
+        Handle mouse release to stop dragging.
+
+        :param event: QMouseEvent
+
+        :return: None
+        """
         if event.button() == Qt.MouseButton.LeftButton:
             self._dragging = False
             self.setCursor(Qt.CursorShape.ArrowCursor)
@@ -159,6 +206,14 @@ class DraggableScrollArea(QScrollArea):
 
 
 class AlpsGUI(QWidget):
+    """
+    Main GUI for Alps Snow Depth Forecaster
+    1. Displays map with clickable station buttons.
+    2. Allows model selection and parameter input.
+    3. Runs selected model in background and shows results.
+
+    :return: None
+    """
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Snow Depth Forecaster - Alps Stations")
@@ -196,31 +251,143 @@ class AlpsGUI(QWidget):
         self.current_station = None
         self.model_thread = None
 
+    def create_forecast_browser(self):
+        """
+        Create a file browser for already computed forecasts
+
+        :return: QWidget with forecast list
+        """
+        widget = QWidget()
+        layout = QVBoxLayout()
+
+        layout.addWidget(QLabel("Computed Forecasts:"))
+
+        # List widget to display files
+        self.forecast_list = QListWidget()
+        self.forecast_list.itemDoubleClicked.connect(self.load_computed_forecast)
+        layout.addWidget(self.forecast_list)
+
+        # Refresh button
+        refresh_btn = QPushButton("Refresh")
+        refresh_btn.clicked.connect(self.load_computed_forecasts)  # Fixed: plural
+        layout.addWidget(refresh_btn)
+
+        widget.setLayout(layout)
+        self.load_computed_forecasts()  # Fixed: plural
+
+        return widget
+
+    def load_computed_forecasts(self):
+        """
+        Load list of computed forecast files from ./computed/ folder
+
+        :return: None
+        """
+        self.forecast_list.clear()
+        computed_folder = Path("./computed")
+
+        if not computed_folder.exists():
+            computed_folder.mkdir(exist_ok=True)
+            return
+
+        files = sorted(computed_folder.glob("*.txt"))
+        for file in files:
+            self.forecast_list.addItem(file.name)
+
+    def load_computed_forecast(self, item):
+        """
+        Load and display a computed forecast file (supports multiple stations)
+
+        :param item: QListWidgetItem selected
+
+        :return: None
+        """
+        file_path = Path("./computed") / item.text()
+        try:
+            with open(file_path, 'r') as f:
+                content = f.read()
+
+            # Split by station sections (each starts with ===)
+            sections = content.split('===')[1:]  # Skip empty first element
+
+            if not sections:
+                QMessageBox.warning(self, "Error", "No data found in file")
+                return
+
+            all_results = []
+
+            for section in sections:
+                if not section.strip():
+                    continue
+
+                lines = section.strip().split('\n')
+
+                # Parse header (first line after ===)
+                header = lines[0].strip()
+                parts = header.split()
+
+                # Station name is the first part before .txt
+                station_name = parts[0].replace('.txt', '')
+                model_type = parts[1] if len(parts) > 1 else "Unknown"
+
+                # Find global stats line
+                global_stats = None
+                for line in lines:
+                    if line.startswith('Global:'):
+                        global_stats = line
+                        break
+
+                # Parse global statistics
+                if global_stats:
+                    stats_parts = global_stats.replace('Global: ', '').split()
+                    mae = float(stats_parts[1])
+                    nmae = float(stats_parts[3])
+                    mean = float(stats_parts[5])
+                    predicted = float(stats_parts[7])
+                    pct_error = float(stats_parts[9])
+                else:
+                    mae = nmae = mean = predicted = pct_error = 0.0
+
+                all_results.append({
+                    'station_name': station_name,
+                    'model_type': model_type,
+                    'mae': mae,
+                    'nmae': nmae,
+                    'season_mean': mean,
+                    'predicted': predicted,
+                    'pct_error': pct_error,
+                    'section_content': '===' + section
+                })
+
+            # Show results window with all stations
+            self.results_window = ComputedResultsWindow(item.text(), all_results)
+            self.results_window.show()
+
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to load file: {str(e)}")
+
     def create_map_widget(self):
-        """Create scrollable map with clickable station buttons"""
+        """
+        Create scrollable map with clickable station buttons
+
+        :return: QScrollArea containing the map and buttons
+        """
 
         scroll = DraggableScrollArea(self.coord_label)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
-        # Container widget for map and buttons
         widget = QWidget()
         widget.setFixedSize(1499, 1856)
         widget.setMouseTracking(True)
 
-        # Map background
         map_label = QLabel(widget)
         map_label.setMouseTracking(True)
         if Path("alps_map_crop.png").exists():
             pix = QPixmap("alps_map_crop.png")
             map_label.setPixmap(pix)
             map_label.setFixedSize(1499, 1856)
-        else:
-            map_label.setText("Map not found")
-            map_label.setStyleSheet("background-color: #E8F4F8; border: 2px solid #999;")
-            map_label.setFixedSize(1499, 1856)
 
-        # Add station buttons at specified coordinates
         for station_name in self.datasets.keys():
             if station_name in self.station_coords:
                 x, y = self.station_coords[station_name]
@@ -240,12 +407,15 @@ class AlpsGUI(QWidget):
                 btn.move(x, y)
                 btn.clicked.connect(lambda checked, s=station_name: self.select_station(s))
 
-        # Put widget inside scroll area
         scroll.setWidget(widget)
         return scroll
 
     def load_data(self):
-        """Load all cleaned data files"""
+        """
+        Load cleaned datasets from folder
+
+        :return: None
+        """
         self.datasets = {}
         folder = Path("./cleaned v2")
 
@@ -258,7 +428,11 @@ class AlpsGUI(QWidget):
                 self.datasets[file.stem] = read_csv(file)
 
     def create_control_widget(self):
-        """Create control panel with model selection"""
+        """
+        Create control panel for model selection, parameters and file browsing.
+
+        :return: QWidget with controls
+        """
         widget = QWidget()
         layout = QVBoxLayout()
 
@@ -288,27 +462,40 @@ class AlpsGUI(QWidget):
         self.status_label = QLabel("")
         layout.addWidget(self.status_label)
 
+        # Add forecast browser
+        layout.addWidget(self.create_forecast_browser())
+
         layout.addStretch()
         widget.setLayout(layout)
 
         return widget
 
     def select_station(self, station_name):
-        """Handle station selection"""
+        """
+        Handle station selection
+
+        :param station_name: (str) name of the selected station
+
+        :return: None
+        """
         self.current_station = station_name
         self.station_label.setText(f"Selected: {station_name}")
         self.run_btn.setEnabled(True)
         self.status_label.setText("")
 
     def run_forecast(self):
-        """Run the selected model on the selected station"""
+        """
+        Run the selected model on the selected station
+
+        :return: None
+        """
         if not self.current_station:
             return
 
         model_type = self.model_combo.currentText()
         df = self.datasets[self.current_station]
 
-        # Model parameters (you can add UI controls for these)
+        # TODO: Model parameters
         params = {
             'is_whole': 'whole' in self.current_station.lower(),
             'p': 1, 'd': 0, 'q': 1,
@@ -328,11 +515,23 @@ class AlpsGUI(QWidget):
         self.model_thread.start()
 
     def update_status(self, message):
-        """Update status label"""
+        """
+        Update status label
+
+        :param message: (str) status message
+
+        :return: None
+        """
         self.status_label.setText(message)
 
     def show_results(self, results):
-        """Display forecast results"""
+        """
+        Display forecast results
+
+        :param results: (dict) results from the model
+
+        :return: None
+        """
         self.progress_bar.setVisible(False)
         self.run_btn.setEnabled(True)
         self.status_label.setText("Complete!")
@@ -340,6 +539,53 @@ class AlpsGUI(QWidget):
         # Open results window
         self.results_window = ResultsWindow(self.current_station, results)
         self.results_window.show()
+
+
+class ComputedResultsWindow(QWidget):
+    """
+    Window to display results for multiple stations from a single file
+
+    :param filename: (str) name of the file
+    :param stations_data: (list) list of dicts with station results
+
+    :return: None
+    """
+
+    def __init__(self, filename, stations_data):
+        super().__init__()
+        self.setWindowTitle(f"Computed Results - {filename}")
+        self.setGeometry(200, 200, 900, 600)
+
+        layout = QVBoxLayout()
+
+        # Summary section
+        summary = QTextEdit()
+        summary.setReadOnly(True)
+        summary.setMaximumHeight(200)
+        summary.setStyleSheet("font-family: monospace; color: black; background-color: #f0f0f0;")
+
+        summary.append(f"=== {filename} - {len(stations_data)} Station(s) ===\n")
+        for data in stations_data:
+            summary.append(f"{data['station_name']} ({data['model_type']}): "
+                           f"MAE={data['mae']:.3f}, NMAE={data['nmae']:.3f}, "
+                           f"Error={data['pct_error']:.2f}%")
+
+        layout.addWidget(QLabel("Summary:"))
+        layout.addWidget(summary)
+
+        # Detailed results
+        layout.addWidget(QLabel("Detailed Results:"))
+
+        details = QTextEdit()
+        details.setReadOnly(True)
+        details.setStyleSheet("font-family: monospace;")
+
+        for data in stations_data:
+            details.append(data['section_content'])
+            details.append("\n" + "=" * 80 + "\n")
+
+        layout.addWidget(details)
+        self.setLayout(layout)
 
 
 if __name__ == "__main__":
