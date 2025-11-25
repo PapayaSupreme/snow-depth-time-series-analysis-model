@@ -279,7 +279,7 @@ class AlpsGUI(QWidget):
 
     def load_computed_forecasts(self):
         """
-        Load list of computed forecast files from ./computed/ folder
+        Load list of computed forecast files from ./computed/ folder and subfolders
 
         :return: None
         """
@@ -290,74 +290,105 @@ class AlpsGUI(QWidget):
             computed_folder.mkdir(exist_ok=True)
             return
 
-        files = sorted(computed_folder.glob("*.txt"))
+        # Use rglob to search recursively through subdirectories
+        files = sorted(computed_folder.rglob("*.txt"))
+
         for file in files:
-            self.forecast_list.addItem(file.name)
+            # Show relative path from computed folder for clarity
+            relative_path = file.relative_to(computed_folder)
+            self.forecast_list.addItem(str(relative_path))
 
     def load_computed_forecast(self, item):
         """
         Load and display a computed forecast file (supports multiple stations)
 
         :param item: QListWidgetItem selected
-
         :return: None
         """
+        # Construct full path using relative path from list
         file_path = Path("./computed") / item.text()
+
         try:
-            with open(file_path, 'r') as f:
-                content = f.read()
-
-            # Split by station sections (each starts with ===)
-            sections = content.split('===')[1:]  # Skip empty first element
-
-            if not sections:
-                QMessageBox.warning(self, "Error", "No data found in file")
-                return
+            with open(file_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
 
             all_results = []
 
-            for section in sections:
-                if not section.strip():
-                    continue
+            i = 0
+            n = len(lines)
 
-                lines = section.strip().split('\n')
+            while i < n:
+                line = lines[i].strip()
 
-                # Parse header (first line after ===)
-                header = lines[0].strip()
-                parts = header.split()
+                # Look for a section header: "=== station.txt MODEL Rolling Validation ==="
+                if line.startswith("==="):
+                    header_line = line
+                    parts = header_line.split()
 
-                # Station name is the first part before .txt
-                station_name = parts[0].replace('.txt', '')
-                model_type = parts[1] if len(parts) > 1 else "Unknown"
+                    # Expected: ['===', 'station.txt', 'MODEL', 'Rolling', 'Validation', '===']
+                    station_name = "Unknown"
+                    model_type = "Unknown"
 
-                # Find global stats line
-                global_stats = None
-                for line in lines:
-                    if line.startswith('Global:'):
-                        global_stats = line
-                        break
+                    if len(parts) >= 3:
+                        # parts[1] = 'col_de_porte_daily.txt'
+                        station_name = Path(parts[1]).stem  # remove .txt
+                        model_type = parts[2]  # e.g. PROPHET
 
-                # Parse global statistics
-                if global_stats:
-                    stats_parts = global_stats.replace('Global: ', '').split()
-                    mae = float(stats_parts[1])
-                    nmae = float(stats_parts[3])
-                    mean = float(stats_parts[5])
-                    predicted = float(stats_parts[7])
-                    pct_error = float(stats_parts[9])
-                else:
+                    # Collect all lines for this section until the next "===" or EOF
+                    section_lines = [lines[i]]
+                    i += 1
+
+                    global_line = None
+
+                    while i < n:
+                        current = lines[i]
+                        stripped = current.strip()
+
+                        # Next section starts
+                        if stripped.startswith("==="):
+                            break
+
+                        section_lines.append(current)
+
+                        if stripped.startswith("Global:"):
+                            global_line = stripped
+
+                        i += 1
+
+                    # Parse global statistics from Global: line
                     mae = nmae = mean = predicted = pct_error = 0.0
 
-                all_results.append({
-                    'station_name': station_name,
-                    'model_type': model_type,
-                    'mae': mae,
-                    'nmae': nmae,
-                    'season_mean': mean,
-                    'predicted': predicted,
-                    'pct_error': pct_error,
-                    'section_content': '===' + section
-                })
+                    if global_line:
+                        # Example:
+                        # Global: MAE: 35.516 NMAE: 0.993 mean: 53.467 predicted: 55.43 %: 3.67
+                        parts = global_line.split()
+                        try:
+                            mae = float(parts[2])
+                            nmae = float(parts[4])
+                            mean = float(parts[6])
+                            predicted = float(parts[8])
+                            pct_error = float(parts[10])
+                        except (IndexError, ValueError):
+                            # If the format ever changes, fail gracefully
+                            mae = nmae = mean = predicted = pct_error = 0.0
+
+                    all_results.append({
+                        "station_name": station_name,
+                        "model_type": model_type,
+                        "mae": mae,
+                        "nmae": nmae,
+                        "season_mean": mean,
+                        "predicted": predicted,
+                        "pct_error": pct_error,
+                        "section_content": "".join(section_lines),
+                    })
+
+                else:
+                    i += 1
+
+            if not all_results:
+                QMessageBox.warning(self, "Error", "No data found in file")
+                return
 
             # Show results window with all stations
             self.results_window = ComputedResultsWindow(item.text(), all_results)
