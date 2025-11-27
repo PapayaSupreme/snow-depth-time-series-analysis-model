@@ -309,58 +309,51 @@ class AlpsGUI(QWidget):
         file_path = Path("./computed") / item.text()
 
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                lines = f.readlines()
+            text = file_path.read_text(encoding="utf-8")
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to read file: {str(e)}")
+            return
 
+        try:
+            lines = text.splitlines(True)
             all_results = []
-
             i = 0
             n = len(lines)
 
             while i < n:
                 line = lines[i].strip()
 
-                # Look for a section header: "=== station.txt MODEL Rolling Validation ==="
                 if line.startswith("==="):
                     header_line = line
                     parts = header_line.split()
 
-                    # Expected: ['===', 'station.txt', 'MODEL', 'Rolling', 'Validation', '===']
                     station_name = "Unknown"
                     model_type = "Unknown"
 
                     if len(parts) >= 3:
-                        # parts[1] = 'col_de_porte_daily.txt'
-                        station_name = Path(parts[1]).stem  # remove .txt
-                        model_type = parts[2]  # e.g. PROPHET
+                        station_name = Path(parts[1]).stem
+                        model_type = parts[2]
 
-                    # Collect all lines for this section until the next "===" or EOF
                     section_lines = [lines[i]]
                     i += 1
-
                     global_line = None
 
                     while i < n:
                         current = lines[i]
                         stripped = current.strip()
 
-                        # Next section starts
                         if stripped.startswith("==="):
                             break
 
                         section_lines.append(current)
-
                         if stripped.startswith("Global:"):
                             global_line = stripped
 
                         i += 1
 
-                    # Parse global statistics from Global: line
                     mae = nmae = mean = predicted = pct_error = 0.0
 
                     if global_line:
-                        # Example:
-                        # Global: MAE: 35.516 NMAE: 0.993 mean: 53.467 predicted: 55.43 %: 3.67
                         parts = global_line.split()
                         try:
                             mae = float(parts[2])
@@ -369,8 +362,7 @@ class AlpsGUI(QWidget):
                             predicted = float(parts[8])
                             pct_error = float(parts[10])
                         except (IndexError, ValueError):
-                            # If the format ever changes, fail gracefully
-                            mae = nmae = mean = predicted = pct_error = 0.0
+                            pass
 
                     all_results.append({
                         "station_name": station_name,
@@ -382,20 +374,34 @@ class AlpsGUI(QWidget):
                         "pct_error": pct_error,
                         "section_content": "".join(section_lines),
                     })
-
                 else:
                     i += 1
 
             if not all_results:
-                QMessageBox.warning(self, "Error", "No data found in file")
+                self._show_raw_file(item.text(), text)
                 return
 
-            # Show results window with all stations
             self.results_window = ComputedResultsWindow(item.text(), all_results)
             self.results_window.show()
 
-        except Exception as e:
-            QMessageBox.warning(self, "Error", f"Failed to load file: {str(e)}")
+        except Exception:
+            self._show_raw_file(item.text(), text)
+
+    def _show_raw_file(self, filename, content):
+        """Show raw file content in a simple window"""
+        fallback_win = QWidget()
+        fallback_win.setWindowTitle(f"File Content - {filename}")
+        fallback_win.setGeometry(250, 250, 800, 600)
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel(f"Raw contents of `./computed/{filename}`:"))
+        txt = QTextEdit()
+        txt.setReadOnly(True)
+        txt.setPlainText(content)
+        txt.setStyleSheet("font-family: monospace;")
+        layout.addWidget(txt)
+        fallback_win.setLayout(layout)
+        self._fallback_window = fallback_win
+        self._fallback_window.show()
 
     def create_map_widget(self):
         """
