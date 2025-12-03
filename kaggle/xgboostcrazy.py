@@ -1,3 +1,5 @@
+!pip install --quiet xgboost
+
 import pandas as pd
 import numpy as np
 import xgboost as xgb
@@ -5,6 +7,26 @@ from sklearn.metrics import mean_absolute_error
 import matplotlib.pyplot as plt
 import warnings
 import torch
+
+"""for more prudent approach i did xgb.XGBRegressor(
+        n_estimators=1000,
+        learning_rate=0.015,
+        max_depth=6,
+        objective='reg:absoluteerror',
+        n_jobs=-1,
+        tree_method='hist',
+        device='cuda' if torch.cuda.is_available() else 'cpu'
+    ).fit(
+        X_train, y_train,
+        eval_set=[(X_val, y_val)],
+        eval_metric='mae',
+        early_stopping_rounds=50,
+        verbose=False
+    )"""
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Status: Running on {DEVICE}")
+print(f"XGBoost version: {xgb.__version__}")
 
 warnings.filterwarnings('ignore')
 
@@ -58,8 +80,8 @@ def train_and_predict_recursive(df):
         colsample_bytree=0.85,
         min_child_weight=1,
         reg_lambda=1.0,
-        objective='reg:squarederror',
-        tree_method='hist',
+        objective='reg:squarederror',   #hence why crazy
+        tree_method='hist',             #exact when u need to lock in
         device='cuda' if torch.cuda.is_available() else 'cpu'
     )
 

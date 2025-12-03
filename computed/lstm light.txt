@@ -1,0 +1,21 @@
+train_series: pd.Series,
+        train_season_years: pd.Series,
+        val_index: pd.DatetimeIndex,
+        is_whole: bool = False,
+        seq_len: int = 60,
+        hidden_dim: int = 32,
+        num_layers: int = 2,
+        epochs: int = 100,
+        lr: float = 1e-3,
+        dropout: float = 0.2,
+        batch_size: int = 16,
+        patience: int = 10
+)
+
+Final Results for tignes_daily.txt: MAE: 69.05 cm | Weighted NMAE: 81.2%
+
+Final Results for les2alpes_daily.txt: MAE: 91.37 cm | Weighted NMAE: 67.1%
+
+Final Results for serre_chevalier_daily.txt: MAE: 36.46 cm | Weighted NMAE: 90.1%
+
+Final Results for col_de_porte_daily.txt: MAE: 43.31 cm | Weighted NMAE: 81.0%

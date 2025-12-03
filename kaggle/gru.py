@@ -2,9 +2,8 @@ import pandas as pd
 import numpy as np
 import torch
 import torch.nn as nn
-from typing import Tuple, List
+from typing import Tuple
 from torch.utils.data import TensorDataset, DataLoader
-import sys
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Status: Running on {DEVICE}")

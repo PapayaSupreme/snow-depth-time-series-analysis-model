@@ -69,7 +69,7 @@ class ModelRunner(QThread):
                 try:
                     from models.gru import rolling_seasonal_gru
                 except (ImportError, OSError) as e:
-                    # OSError often wraps "DLL load failed" on Windows
+                    # sometimes pytorch crashes idk why
                     self.progress.emit(f"GRU unavailable: {e}")
                     self.finished.emit({'type': 'gru', 'results': None})
                     return
@@ -83,7 +83,7 @@ class ModelRunner(QThread):
                     patience=self.params.get('patience', 15),
                     min_train_seasons=10
                 )
-                # GRU returns different format
+                # GRU has different formats so not supported by base output formatter this does it for now
                 self.finished.emit({'type': 'gru', 'results': results})
                 return
 
@@ -268,12 +268,12 @@ class AlpsGUI(QWidget):
 
         layout.addWidget(QLabel("Computed Forecasts:"))
 
-        # List widget to display files
+        # list element
         self.forecast_list = QListWidget()
         self.forecast_list.itemDoubleClicked.connect(self.load_computed_forecast)
         layout.addWidget(self.forecast_list)
 
-        # Refresh button
+        # refresh button element
         refresh_btn = QPushButton("Refresh")
         refresh_btn.clicked.connect(self.load_computed_forecasts)  # Fixed: plural
         layout.addWidget(refresh_btn)
@@ -296,11 +296,10 @@ class AlpsGUI(QWidget):
             computed_folder.mkdir(exist_ok=True)
             return
 
-        # Use rglob to search recursively through subdirectories
+        # search through of file in every dir
         files = sorted(computed_folder.rglob("*.txt"))
 
         for file in files:
-            # Show relative path from computed folder for clarity
             relative_path = file.relative_to(computed_folder)
             self.forecast_list.addItem(str(relative_path))
 
@@ -311,7 +310,6 @@ class AlpsGUI(QWidget):
         :param item: QListWidgetItem selected
         :return: None
         """
-        # Construct full path using relative path from list
         file_path = Path("./computed") / item.text()
 
         try:
@@ -394,7 +392,10 @@ class AlpsGUI(QWidget):
             self._show_raw_file(item.text(), text)
 
     def _show_raw_file(self, filename, content):
-        """Show raw file content in a simple window"""
+        """
+        Show raw file content in a simple window
+
+        """
         fallback_win = QWidget()
         fallback_win.setWindowTitle(f"File Content - {filename}")
         fallback_win.setGeometry(250, 250, 800, 600)
@@ -601,7 +602,6 @@ class ComputedResultsWindow(QWidget):
 
         layout = QVBoxLayout()
 
-        # Summary section
         summary = QTextEdit()
         summary.setReadOnly(True)
         summary.setMaximumHeight(200)
@@ -616,7 +616,6 @@ class ComputedResultsWindow(QWidget):
         layout.addWidget(QLabel("Summary:"))
         layout.addWidget(summary)
 
-        # Detailed results
         layout.addWidget(QLabel("Detailed Results:"))
 
         details = QTextEdit()

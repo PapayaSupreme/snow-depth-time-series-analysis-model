@@ -1,21 +1,18 @@
-!pip install statsmodels pandas --quiet
+# de-comment line below in kaggle
+# !pip install statsmodels pandas --quiet
 
 import pandas as pd
-from pathlib import Path
-from os import makedirs
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 
 def main():
     filenames = ["col_de_porte_daily.txt", "les2alpes_daily.txt",
                  "serre_chevalier_daily.txt", "tignes_daily.txt"]
-    #filenames = ["col_de_porte_daily_whole.txt"]
 
     dfs = {}
     for filename in filenames:
         dfs[filename] = pd.read_csv("/kaggle/input/stations/" + filename)
 
     print("NOTE: ARIMA PARAMETERS ARE (p = 1, d = 1, q = 1)")
-    correct = False
     p, d, q = 1, 0, 0
     P, D, Q = 1, 1, 1
     S = 212
