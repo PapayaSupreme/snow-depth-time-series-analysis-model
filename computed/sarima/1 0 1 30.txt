@@ -1,0 +1,35 @@
+=== col_de_porte_daily.txt SARIMA(1, 1, 1)(1, 0, 1, 30) Rolling Validation ===
+   season_year  normalized_mae
+0         1970        0.838213
+1         1971        0.995136
+2         1972        1.010962
+3         1973        1.020068
+4         1974        0.999169
+Global MAE: 0.9882474780005971
+
+=== les2alpes_daily.txt SARIMA(1, 1, 1)(1, 0, 1, 30) Rolling Validation ===
+   season_year  normalized_mae
+0         1980        1.327556
+1         1981        0.483434
+2         1982        0.499375
+3         1983        0.561939
+4         1984        0.443494
+Global MAE: 0.6473276111234928
+
+=== serre_chevalier_daily.txt SARIMA(1, 1, 1)(1, 0, 1, 30) Rolling Validation ===
+   season_year  normalized_mae
+0         1985        0.999527
+1         1986        0.995803
+2         1987        0.999815
+3         1988        1.000771
+4         1989        0.997397
+Global MAE: 0.9433449684573357
+
+=== tignes_daily.txt SARIMA(1, 1, 1)(1, 0, 1, 30) Rolling Validation ===
+   season_year  normalized_mae
+0         1979        0.785038
+1         1980        0.595717
+2         1981        0.987597
+3         1982        0.962523
+4         1983        0.975914
+Global MAE: 0.8682381061770602

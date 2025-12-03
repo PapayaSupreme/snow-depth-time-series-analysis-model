@@ -66,7 +66,13 @@ class ModelRunner(QThread):
                     self.df, min_train_seasons=10
                 )
             elif self.model_type == "GRU":
-                from models.gru import rolling_seasonal_gru
+                try:
+                    from models.gru import rolling_seasonal_gru
+                except (ImportError, OSError) as e:
+                    # OSError often wraps "DLL load failed" on Windows
+                    self.progress.emit(f"GRU unavailable: {e}")
+                    self.finished.emit({'type': 'gru', 'results': None})
+                    return
 
                 results = rolling_seasonal_gru(
                     self.df,
@@ -532,7 +538,7 @@ class AlpsGUI(QWidget):
         model_type = self.model_combo.currentText()
         df = self.datasets[self.current_station]
 
-        # TODO: Model parameters
+        # TODO: user provided model parameters
         params = {
             'is_whole': 'whole' in self.current_station.lower(),
             'p': 1, 'd': 0, 'q': 1,

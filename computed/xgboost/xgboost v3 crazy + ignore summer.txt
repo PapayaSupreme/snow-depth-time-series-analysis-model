@@ -1,0 +1,45 @@
+weights = np.where(y_train > 40, 3.0, 1.0)
+
+xgb.XGBRegressor(
+        n_estimators=3000,
+        learning_rate=0.01,
+        max_depth=10,
+        subsample=0.85,
+        colsample_bytree=0.85,
+        min_child_weight=1,
+        reg_lambda=1.0,
+        objective='reg:squarederror',
+        tree_method='hist',
+        device='cuda' if torch.cuda.is_available() else 'cpu'
+    ).fit(
+        X_train, y_train,
+        sample_weight=weights,
+        eval_set=[(X_val, y_val)],
+        eval_metric='mae',
+        early_stopping_rounds=200,
+        verbose=False
+    )
+
+
+===== tignes_daily.txt =====
+Training XGBoost on data before 2017...
+Final MAE : 38.77 cm
+Final NMAE: 0.356
+
+
+===== les2alpes_daily.txt =====
+Training XGBoost on data before 2017...
+Final MAE : 47.17 cm
+Final NMAE: 0.372
+
+
+===== serre_chevalier_daily.txt =====
+Training XGBoost on data before 2017...
+Final MAE : 28.96 cm
+Final NMAE: 0.586
+
+
+===== col_de_porte_daily.txt =====
+Training XGBoost on data before 2018...
+Final MAE : 28.79 cm
+Final NMAE: 0.535

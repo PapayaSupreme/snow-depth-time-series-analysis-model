@@ -1,0 +1,36 @@
+xgb.XGBRegressor(
+        n_estimators=1000,
+        learning_rate=0.015,
+        max_depth=6,
+        objective='reg:squarederror',
+        n_jobs=-1,
+        tree_method='hist',
+        device='cuda' if torch.cuda.is_available() else 'cpu'
+    ).fit(
+        X_train, y_train,
+        eval_set=[(X_val, y_val)],
+        eval_metric='mae',
+        early_stopping_rounds=50,
+        verbose=False
+    )
+
+
+
+===== tignes_daily.txt =====
+Final MAE : 73.51 cm
+Final NMAE: 0.674
+
+
+===== les2alpes_daily.txt =====
+Final MAE : 71.47 cm
+Final NMAE: 0.563
+
+
+===== serre_chevalier_daily.txt =====
+Final MAE : 32.66 cm
+Final NMAE: 0.661
+
+
+===== col_de_porte_daily.txt =====
+Final MAE : 23.96 cm
+Final NMAE: 0.445
