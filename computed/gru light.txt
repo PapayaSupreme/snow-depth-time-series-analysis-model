@@ -1,0 +1,7 @@
+Final Results for tignes_daily.txt: MAE: 50.64 cm | Weighted NMAE: 59.5%
+
+Final Results for les2alpes_daily.txt: MAE: 104.14 cm | Weighted NMAE: 76.5%
+
+Final Results for serre_chevalier_daily.txt: MAE: 30.48 cm | Weighted NMAE: 75.3%
+
+Final Results for col_de_porte_daily.txt: MAE: 45.81 cm | Weighted NMAE: 85.7%

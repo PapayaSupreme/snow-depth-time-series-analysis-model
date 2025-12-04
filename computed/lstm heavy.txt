@@ -1,0 +1,22 @@
+lstm_predict(
+        train_series: pd.Series,
+        train_season_years: pd.Series,
+        val_index: pd.DatetimeIndex,
+        is_whole: bool = False,
+        seq_len: int = 90,
+        hidden_dim: int = 64,
+	dropout=0.2,
+        num_layers: int = 2,
+        epochs: int = 100,
+        lr: float = 1e-3,
+        batch_size: int = 16,
+        patience: int = 10
+	)
+
+Final Results for tignes_daily.txt: MAE: 84.14 cm | Weighted NMAE: 98.9%
+
+Final Results for les2alpes_daily.txt: MAE: 96.12 cm | Weighted NMAE: 70.6%
+
+Final Results for serre_chevalier_daily.txt: MAE: 35.98 cm | Weighted NMAE: 88.9%
+
+Final Results for col_de_porte_daily.txt: MAE: 46.39 cm | Weighted NMAE: 86.8%
