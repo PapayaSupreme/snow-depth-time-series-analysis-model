@@ -4,7 +4,9 @@ It provides both a full training pipeline and a PyQt6 GUI application for clean 
 The dataset used is the SAFRAN–CROCUS snowpack model output (1975–2020) for four Alpine stations:
 Tignes, Les 2 Alpes, Serre Chevalier, Col de Porte.
 
-Dependencies : pandas, pathlib, os, matplotlib.pyplot, statsmodels, prophet, numpy, xgboost, ppyqt6
+Dependencies : 
+- core : pandas, pathlib, os, pyqt6, numpy
+- models : matplotlib.pyplot, statsmodels, prophet, xgboost
 
 How to run : 
 1. Use default dataset or add more in `/cleaned v1/`, then run `/utils/cleaner.py` if you add yours.
